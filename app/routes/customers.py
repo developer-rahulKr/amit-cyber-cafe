@@ -16,3 +16,11 @@ def add_customer():
     db.session.add(customer)
     db.session.commit()
     return jsonify({'message': 'Customer added successfully'})
+
+@customer_bp.route('/', methods=['GET'])
+def list_customers():   
+    customers = Customer.query.all()
+    return jsonify([
+        {'id': c.id, 'name': c.name, 'phone': c.phone, 'email': c.email}
+        for c in customers
+    ])

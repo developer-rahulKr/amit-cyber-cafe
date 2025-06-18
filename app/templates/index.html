@@ -1,111 +1,196 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cyber Cafe Due Tracker</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 text-gray-800">
-  <header class="bg-indigo-600 p-4 text-white shadow">
-    <div class="container mx-auto text-center">
-      <h1 class="text-3xl font-bold">Amit Cyber Cafe Due Tracker</h1>
-    </div>
-  </header>
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
 
-  <main class="container mx-auto p-4">
-    <div class="bg-white rounded shadow p-6 mb-6">
-      <h2 class="text-xl font-semibold mb-4">Add New Customer</h2>
-      <form id="customer-form" class="space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <input type="text" id="name" placeholder="Name" required class="border p-2 rounded w-full" />
-          <input type="text" id="phone" placeholder="Phone" required class="border p-2 rounded w-full" />
-          <input type="email" id="email" placeholder="Email (optional)" class="border p-2 rounded w-full" />
-        </div>
-        <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Add Customer</button>
-      </form>
-    </div>
+{% block content %}
+<h2 class="text-2xl font-bold mb-4">Due List</h2>
+<table class="min-w-full bg-white rounded shadow">
+  <thead>
+    <tr class="bg-gray-200 text-left">
+      <th class="p-2">ID</th>
+      <th class="p-2">Customer</th>
+      <th class="p-2">Amount</th>
+      <th class="p-2">Due Date</th>
+      <th class="p-2">Status</th>
+      <th class="p-2">Actions</th>
+    </tr>
+  </thead>
+  <tbody id="due-table-body">
+    <!-- Filled by JS -->
+  </tbody>
+</table>
+{% endblock %}
 
-    <div class="bg-white rounded shadow p-6 mb-6">
-      <h2 class="text-xl font-semibold mb-4">Add Due</h2>
-      <form id="due-form" class="space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <input type="number" id="customer_id" placeholder="Customer ID" required class="border p-2 rounded w-full" />
-          <input type="number" id="amount" placeholder="Amount" required class="border p-2 rounded w-full" />
-          <input type="date" id="due_date" required class="border p-2 rounded w-full" />
-        </div>
-        <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Add Due</button>
-      </form>
-    </div>
+{% block modals %}
+<!-- Customer Modal -->
+<div id="customerModal" class="fixed inset-0 hidden items-center justify-center bg-black bg-opacity-50 z-50">
+  <div class="bg-white rounded p-6 shadow w-full max-w-md">
+    <h3 class="text-lg font-bold mb-4">Add Customer</h3>
+    <form id="customer-form" class="space-y-4">
+      <input type="text" id="name" placeholder="Name" class="w-full p-2 border rounded" required />
+      <input type="text" id="phone" placeholder="Phone" class="w-full p-2 border rounded" required />
+      <input type="email" id="email" placeholder="Email" class="w-full p-2 border rounded" />
+      <div class="flex justify-end space-x-2">
+        <button type="button" onclick="closeCustomerModal()" class="px-4 py-2 border rounded">Cancel</button>
+        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded">Add</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-    <div class="bg-white rounded shadow p-6">
-      <h2 class="text-xl font-semibold mb-4">All Dues</h2>
-      <table class="min-w-full text-sm">
-        <thead class="bg-gray-200">
-          <tr>
-            <th class="p-2 text-left">ID</th>
-            <th class="p-2 text-left">Customer</th>
-            <th class="p-2 text-left">Amount</th>
-            <th class="p-2 text-left">Due Date</th>
-            <th class="p-2 text-left">Status</th>
-          </tr>
-        </thead>
-        <tbody id="due-table-body" class="bg-white">
-        </tbody>
-      </table>
-    </div>
-  </main>
+<!-- Due Modal -->
+<div id="dueModal" class="fixed inset-0 hidden items-center justify-center bg-black bg-opacity-50 z-50">
+  <div class="bg-white rounded p-6 shadow w-full max-w-md">
+    <h3 class="text-lg font-bold mb-4">Add Due</h3>
+    <form id="due-form" class="space-y-4">
+      <input list="customer-list" id="customer_name" placeholder="Start typing customer name..." class="w-full p-2 border rounded" required />
+      <datalist id="customer-list"></datalist>
+      <input type="number" id="amount" placeholder="Amount" class="w-full p-2 border rounded" required />
+      <input type="date" id="due_date" class="w-full p-2 border rounded" required />
+      <input type="hidden" id="customer_id" />
+      <div class="flex justify-end space-x-2">
+        <button type="button" onclick="closeDueModal()" class="px-4 py-2 border rounded">Cancel</button>
+        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded">Add</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-  <script>
-    document.getElementById('customer-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const name = document.getElementById('name').value;
-      const phone = document.getElementById('phone').value;
-      const email = document.getElementById('email').value;
+<!-- Edit Modal -->
+<div id="editDueModal" class="fixed inset-0 hidden items-center justify-center bg-black bg-opacity-50 z-50">
+  <div class="bg-white rounded p-6 shadow w-full max-w-md">
+    <h3 class="text-lg font-bold mb-4">Edit Due</h3>
+    <form id="edit-due-form" class="space-y-4">
+      <input type="hidden" id="edit_due_id" />
+      <input type="number" id="edit_amount" placeholder="Amount" class="w-full p-2 border rounded" required />
+      <input type="date" id="edit_due_date" class="w-full p-2 border rounded" required />
+      <div class="flex justify-end space-x-2">
+        <button type="button" onclick="closeEditModal()" class="px-4 py-2 border rounded">Cancel</button>
+        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
 
-      const res = await fetch('/customers/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone, email })
-      });
-      const data = await res.json();
-      alert(data.message || 'Customer added!');
+{% block scripts %}
+<script>
+function openCustomerModal() {
+  document.getElementById('customerModal').classList.remove('hidden');
+}
+function closeCustomerModal() {
+  document.getElementById('customerModal').classList.add('hidden');
+}
+function openDueModal() {
+  document.getElementById('dueModal').classList.remove('hidden');
+}
+function closeDueModal() {
+  document.getElementById('dueModal').classList.add('hidden');
+}
+function openEditModal(id) {
+  fetch(`/dues/${id}`)
+    .then(res => res.json())
+    .then(due => {
+      document.getElementById('edit_due_id').value = due.id;
+      document.getElementById('edit_amount').value = due.amount;
+      document.getElementById('edit_due_date').value = due.due_date;
+      document.getElementById('editDueModal').classList.remove('hidden');
     });
+}
+function closeEditModal() {
+  document.getElementById('editDueModal').classList.add('hidden');
+}
+async function loadDues() {
+  const res = await fetch('/dues/');
+  const dues = await res.json();
+  const tbody = document.getElementById('due-table-body');
+  tbody.innerHTML = '';
+  dues.forEach(d => {
+    tbody.innerHTML += `
+      <tr class="border-b">
+        <td class="p-2">${d.id}</td>
+        <td class="p-2">${d.customer_name}</td>
+        <td class="p-2">₹${parseFloat(d.amount).toFixed(2)}</td>
+        <td class="p-2">${d.due_date}</td>
+        <td class="p-2">${d.status}</td>
+        <td class="p-2 space-x-2">
+          <button onclick="openEditModal(${d.id})" class="px-2 py-1 bg-yellow-400 text-black rounded text-sm">Edit</button>
+          <button onclick="confirmDelete(${d.id})" class="px-2 py-1 bg-red-500 text-white rounded text-sm">Delete</button>
+        </td>
+      </tr>`;
+  });
+}
 
-    document.getElementById('due-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const customer_id = document.getElementById('customer_id').value;
-      const amount = document.getElementById('amount').value;
-      const due_date = document.getElementById('due_date').value;
+function confirmDelete(id) {
+  if (confirm("Are you sure you want to delete this due?")) {
+    fetch(`/dues/${id}`, { method: 'DELETE' })
+      .then(() => loadDues());
+  }
+}
 
-      const res = await fetch('/dues/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customer_id, amount, due_date })
-      });
-      const data = await res.json();
-      alert(data.message || 'Due added!');
-      loadDues();
-    });
+document.getElementById('edit-due-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('edit_due_id').value;
+  const amount = document.getElementById('edit_amount').value;
+  const due_date = document.getElementById('edit_due_date').value;
+  await fetch(`/dues/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amount, due_date })
+  });
+  closeEditModal();
+  loadDues();
+});
 
-    async function loadDues() {
-      const res = await fetch('/dues/');
-      const dues = await res.json();
-      const tbody = document.getElementById('due-table-body');
-      tbody.innerHTML = '';
-      dues.forEach(due => {
-        tbody.innerHTML += `
-          <tr class="border-b">
-            <td class="p-2">${due.id}</td>
-            <td class="p-2">${due.customer_name}</td>
-            <td class="p-2">₹${due.amount.toFixed(2)}</td>
-            <td class="p-2">${due.due_date}</td>
-            <td class="p-2">${due.status}</td>
-          </tr>`;
-      });
-    }
+document.getElementById('customer-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('name').value;
+  const phone = document.getElementById('phone').value;
+  const email = document.getElementById('email').value;
+  const res = await fetch('/customers/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, phone, email })
+  });
+  alert((await res.json()).message || 'Customer added');
+  closeCustomerModal();
+});
 
-    window.onload = loadDues;
-  </script>
-</body>
-</html>
+document.getElementById('due-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const customer_id = document.getElementById('customer_id').value;
+  const amount = document.getElementById('amount').value;
+  const due_date = document.getElementById('due_date').value;
+  const res = await fetch('/dues/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ customer_id, amount, due_date })
+  });
+  alert((await res.json()).message || 'Due added');
+  closeDueModal();
+  loadDues();
+});
+
+async function loadCustomers() {
+  const res = await fetch('/customers/');
+  const customers = await res.json();
+  const datalist = document.getElementById('customer-list');
+  datalist.innerHTML = '';
+  customers.forEach(c => {
+    const option = document.createElement('option');
+    option.value = c.name;
+    option.dataset.id = c.id;
+    datalist.appendChild(option);
+  });
+  document.getElementById('customer_name').addEventListener('input', () => {
+    const input = document.getElementById('customer_name').value;
+    const match = [...datalist.options].find(o => o.value === input);
+    document.getElementById('customer_id').value = match ? match.dataset.id : '';
+  });
+}
+
+window.onload = () => {
+  loadCustomers();
+  loadDues();
+};
+</script>
+{% endblock %}

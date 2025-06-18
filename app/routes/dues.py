@@ -11,33 +11,52 @@ def get_dues():
     dues = Due.query.all()
     result = []
     for due in dues:
+        customer = Customer.query.get(due.customer_id)
         result.append({
             'id': due.id,
-            'customer_name': due.customer.name,
             'amount': due.amount,
             'due_date': due.due_date.strftime('%Y-%m-%d'),
-            'status': due.status
+            'status': due.status,
+            'customer_id': due.customer_id,
+            'customer_name': customer.name if customer else 'Unknown'
         })
     return jsonify(result)
 
 @due_bp.route('/', methods=['POST'])
-def add_due():
-    data = request.json
-    customer_id = data.get('customer_id')
-    amount = data.get('amount')
-    due_date_str = data.get('due_date')  
-
-    customer = Customer.query.get(customer_id)
-    if not customer:
-        return jsonify({'error': 'Customer not found'}), 404
-
-    try:
-        due_date = datetime.strptime(due_date_str, "%Y-%m-%d")
-    except:
-        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
-
-    new_due = Due(customer_id=customer_id, amount=amount, due_date=due_date)
+def create_due():
+    data = request.get_json()
+    new_due = Due(
+        customer_id=data['customer_id'],
+        amount=data['amount'],
+        due_date=datetime.strptime(data['due_date'], '%Y-%m-%d'),
+        status='Pending'
+    )
     db.session.add(new_due)
     db.session.commit()
+    return jsonify({'message': 'Due created successfully'}), 201
 
-    return jsonify({'message': 'Due added successfully'})
+# Existing routes
+@due_bp.route('/<int:id>', methods=['GET'])
+def get_due(id):
+    due = Due.query.get_or_404(id)
+    return jsonify({
+        'id': due.id,
+        'amount': due.amount,
+        'due_date': due.due_date.strftime('%Y-%m-%d'),
+    })
+
+@due_bp.route('/<int:id>', methods=['PUT'])
+def update_due(id):
+    data = request.get_json()
+    due = Due.query.get_or_404(id)
+    due.amount = data['amount']
+    due.due_date = datetime.strptime(data['due_date'], '%Y-%m-%d')
+    db.session.commit()
+    return jsonify({'message': 'Due updated successfully'})
+
+@due_bp.route('/<int:id>', methods=['DELETE'])
+def delete_due(id):
+    due = Due.query.get_or_404(id)
+    db.session.delete(due)
+    db.session.commit()
+    return jsonify({'message': 'Due deleted successfully'})

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}Cyber Cafe{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+  <nav class="bg-indigo-700 text-white shadow-md">
+    <div class="container mx-auto flex justify-between items-center p-4">
+      <div class="text-xl font-semibold">Cyber Cafe Tracker</div>
+      <div class="space-x-4">
+        <a href="/" class="hover:underline">Dashboard</a>
+        <a href="#" onclick="openCustomerModal()" class="hover:underline">Add Customer</a>
+        <a href="#" onclick="openDueModal()" class="hover:underline">Add Due</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container mx-auto p-4">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block modals %}{% endblock %}
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>
